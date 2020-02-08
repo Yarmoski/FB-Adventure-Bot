@@ -19,3 +19,36 @@ FB.api("me/feed", "post", { message: postContents }, res => {
   }
   console.log(`Post ID: ${res.id}`);
 });
+
+// get all posts / comments / reactions (t)
+//f = fields
+let getAll = (t, id, f, cb = () => {}, res = null, arr = []) => {
+  let af = "";
+  if (res && res.paging && res.paging.next) {
+    let next = res.paging.next.match(/after=(.*)/)[0];
+    af = "&" + next;
+  }
+  FB.api(`${id}/${t}?limit=100${af}${f}`, (res, err) => {
+    if (err) {
+      return;
+    } else {
+      if (!res.data.length && !arr.length) {
+        cb(arr);
+        return;
+      }
+      if (af.length == 0 && arr.length > 1) {
+        cb(arr);
+        return;
+      } else {
+        if (!arr.length) arr = res.data;
+        else arr = arr.concat(res.data);
+        if (
+          res.paging.cursors.before == res.paging.cursors.after &&
+          res.paging.cursors != undefined
+        )
+          cb(arr);
+        else getAll(t, id, f, cb, res, arr);
+      }
+    }
+  });
+};
